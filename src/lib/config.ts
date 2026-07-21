@@ -12,8 +12,8 @@ export const PEOPLE = [
   { id: "altman", name: "Sam Altman", query: "Sam Altman OpenAI" },
 ] as const;
 
-/** Cheap free-tier-friendly model via Vercel AI Gateway */
-export const DEFAULT_MODEL = "google/gemini-2.5-flash-lite";
+/** Free-tier-friendly Gateway model with reliable structured output */
+export const DEFAULT_MODEL = "google/gemini-2.5-flash";
 
 export function getModel() {
   return process.env.AI_MODEL?.trim() || DEFAULT_MODEL;

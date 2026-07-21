@@ -8,7 +8,7 @@ const briefSchema = z.object({
     z.object({
       id: z.string(),
       label: z.string(),
-      bullets: z.array(z.string()).min(0).max(5),
+      bullets: z.array(z.string()),
     }),
   ),
   people: z.array(
@@ -20,7 +20,9 @@ const briefSchema = z.object({
   ),
 });
 
-export type DailyBrief = z.infer<typeof briefSchema> & {
+export type DailyBrief = {
+  tickers: Array<{ id: string; label: string; bullets: string[] }>;
+  people: Array<{ id: string; name: string; summary: string }>;
   generatedAt: string;
   model: string;
   windowHours: number;
@@ -36,9 +38,9 @@ function formatSources(bundle: ResearchBundle) {
       lines.push("- (no headlines in the last 24 hours)");
       continue;
     }
-    for (const item of items) {
+    for (const item of items.slice(0, 5)) {
       lines.push(
-        `- ${item.publishedAt} | ${item.title}${item.source ? ` [${item.source}]` : ""} | ${item.link}`,
+        `- ${item.publishedAt} | ${item.title}${item.source ? ` [${item.source}]` : ""}`,
       );
     }
   }
@@ -50,14 +52,49 @@ function formatSources(bundle: ResearchBundle) {
       lines.push("- (no headlines in the last 24 hours)");
       continue;
     }
-    for (const item of items) {
+    for (const item of items.slice(0, 5)) {
       lines.push(
-        `- ${item.publishedAt} | ${item.title}${item.source ? ` [${item.source}]` : ""} | ${item.link}`,
+        `- ${item.publishedAt} | ${item.title}${item.source ? ` [${item.source}]` : ""}`,
       );
     }
   }
 
   return lines.join("\n");
+}
+
+function normalizeBrief(
+  object: z.infer<typeof briefSchema>,
+  meta: { model: string; windowHours: number },
+): DailyBrief {
+  return {
+    model: meta.model,
+    windowHours: meta.windowHours,
+    generatedAt: new Date().toISOString(),
+    tickers: TICKERS.map((ticker) => {
+      const found = object.tickers.find((t) => t.id === ticker.id);
+      const bullets = (found?.bullets ?? [])
+        .map((b) => b.trim())
+        .filter(Boolean)
+        .slice(0, 5);
+      return {
+        id: ticker.id,
+        label: ticker.label,
+        bullets:
+          bullets.length > 0
+            ? bullets
+            : ["No material headlines in the last 24 hours."],
+      };
+    }),
+    people: PEOPLE.map((person) => {
+      const found = object.people.find((p) => p.id === person.id);
+      const summary = found?.summary?.trim() || "None found";
+      return {
+        id: person.id,
+        name: person.name,
+        summary,
+      };
+    }),
+  };
 }
 
 export async function generateDailyBrief(
@@ -68,25 +105,25 @@ export async function generateDailyBrief(
   const { object } = await generateObject({
     model,
     schema: briefSchema,
+    maxOutputTokens: 4096,
     system: `You are a concise market and tech briefing analyst.
 Only use the provided headlines from the last ${bundle.windowHours} hours.
 Do not invent events. Prefer material news over rumor.
-For each ticker, write 3-5 short bullets (or fewer if little coverage).
-For each person, write one short paragraph about speeches/announcements, or exactly "None found" if nothing relevant.`,
+Keep every bullet under 25 words.
+For each ticker return 3-5 short bullets (fewer is fine if coverage is thin).
+For each person return one short sentence about speeches/announcements, or exactly "None found".
+Always include every requested id.`,
     prompt: `Create today's brief from these sources collected at ${bundle.collectedAt}:
 ${formatSources(bundle)}
 
-Return ticker ids exactly as: ${TICKERS.map((t) => t.id).join(", ")}.
-Return people ids exactly as: ${PEOPLE.map((p) => p.id).join(", ")}.
-Use these labels/names:
-${TICKERS.map((t) => `${t.id}=${t.label}`).join("; ")}
-${PEOPLE.map((p) => `${p.id}=${p.name}`).join("; ")}`,
+Return ticker ids exactly: ${TICKERS.map((t) => t.id).join(", ")}.
+Return people ids exactly: ${PEOPLE.map((p) => p.id).join(", ")}.
+Labels: ${TICKERS.map((t) => `${t.id}=${t.label}`).join("; ")}.
+Names: ${PEOPLE.map((p) => `${p.id}=${p.name}`).join("; ")}.`,
   });
 
-  return {
-    ...object,
-    generatedAt: new Date().toISOString(),
+  return normalizeBrief(object, {
     model,
     windowHours: bundle.windowHours,
-  };
+  });
 }

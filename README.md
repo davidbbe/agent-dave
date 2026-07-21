@@ -8,7 +8,7 @@ Every day at **12:00 UTC** (Hobby timing may land anytime in the 12:00–12:59 w
 
 1. Pulls the last 24 hours of Google News headlines for **TSLA, MU, META, BTC**
 2. Checks for speeches/announcements by **Andrej Karpathy, Jensen Huang, Alex Karp, Sam Altman**
-3. Summarizes with **Vercel AI Gateway** (`google/gemini-2.5-flash-lite` by default — cheap free-tier friendly)
+3. Summarizes with **Vercel AI Gateway** (`google/gemini-2.5-flash` by default — cheap free-tier friendly)
 4. Emails `streethouse4@gmail.com` via **Resend**
 
 ## Setup
