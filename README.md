@@ -87,6 +87,6 @@ Optional: set `AI_MODEL` to any free-tier Gateway model slug.
 
 ## Free-tier notes
 
-- **Vercel Hobby**: daily crons only — this schedule qualifies
+- **Vercel Hobby**: up to **100 cron jobs** per project, but each may run **only once per day** (no hourly/minute schedules). Timing has a flexible **1-hour** window (e.g. `0 12 * * *` may fire anytime 12:00–12:59 UTC). This project’s noon schedule qualifies.
 - **Resend free**: 100 emails/day — one daily digest is fine
 - **AI Gateway**: every Vercel team gets **$5 of monthly free credits** that AI Gateway uses. That is more than enough for this once-daily brief on a lite/flash model. Credits start on first Gateway request; buying paid credits moves you off the monthly free allowance. Monitor usage in the AI Gateway dashboard.
