@@ -12,6 +12,15 @@ export const PEOPLE = [
   { id: "altman", name: "Sam Altman", query: "Sam Altman OpenAI" },
 ] as const;
 
+/** Google Trends RSS regions shown in the daily brief */
+export const TREND_REGIONS = [
+  { id: "us", label: "United States", geo: "US", limit: 10 },
+  { id: "thailand", label: "Thailand", geo: "TH", limit: 5 },
+  { id: "bulgaria", label: "Bulgaria", geo: "BG", limit: 5 },
+] as const;
+
+export type TrendRegionId = (typeof TREND_REGIONS)[number]["id"];
+
 /** Free-tier-friendly Gateway model with reliable structured output */
 export const DEFAULT_MODEL = "google/gemini-2.5-flash";
 

@@ -2,6 +2,7 @@ import { generateObject } from "ai";
 import { z } from "zod";
 import { getModel, PEOPLE, TICKERS } from "@/lib/config";
 import type { ResearchBundle } from "@/lib/research";
+import { buildBriefTrends, type BriefTrends } from "@/lib/trends";
 
 const briefSchema = z.object({
   tickers: z.array(
@@ -23,6 +24,7 @@ const briefSchema = z.object({
 export type DailyBrief = {
   tickers: Array<{ id: string; label: string; bullets: string[] }>;
   people: Array<{ id: string; name: string; summary: string }>;
+  trends: BriefTrends;
   generatedAt: string;
   model: string;
   windowHours: number;
@@ -64,12 +66,13 @@ function formatSources(bundle: ResearchBundle) {
 
 function normalizeBrief(
   object: z.infer<typeof briefSchema>,
-  meta: { model: string; windowHours: number },
+  meta: { model: string; windowHours: number; trends: BriefTrends },
 ): DailyBrief {
   return {
     model: meta.model,
     windowHours: meta.windowHours,
     generatedAt: new Date().toISOString(),
+    trends: meta.trends,
     tickers: TICKERS.map((ticker) => {
       const found = object.tickers.find((t) => t.id === ticker.id);
       const bullets = (found?.bullets ?? [])
@@ -102,28 +105,32 @@ export async function generateDailyBrief(
 ): Promise<DailyBrief> {
   const model = getModel();
 
-  const { object } = await generateObject({
-    model,
-    schema: briefSchema,
-    maxOutputTokens: 4096,
-    system: `You are a concise market and tech briefing analyst.
+  const [briefResult, trends] = await Promise.all([
+    generateObject({
+      model,
+      schema: briefSchema,
+      maxOutputTokens: 4096,
+      system: `You are a concise market and tech briefing analyst.
 Only use the provided headlines from the last ${bundle.windowHours} hours.
 Do not invent events. Prefer material news over rumor.
 Keep every bullet under 25 words.
 For each ticker return 3-5 short bullets (fewer is fine if coverage is thin).
 For each person return one short sentence about speeches/announcements, or exactly "None found".
 Always include every requested id.`,
-    prompt: `Create today's brief from these sources collected at ${bundle.collectedAt}:
+      prompt: `Create today's brief from these sources collected at ${bundle.collectedAt}:
 ${formatSources(bundle)}
 
 Return ticker ids exactly: ${TICKERS.map((t) => t.id).join(", ")}.
 Return people ids exactly: ${PEOPLE.map((p) => p.id).join(", ")}.
 Labels: ${TICKERS.map((t) => `${t.id}=${t.label}`).join("; ")}.
 Names: ${PEOPLE.map((p) => `${p.id}=${p.name}`).join("; ")}.`,
-  });
+    }),
+    buildBriefTrends(bundle),
+  ]);
 
-  return normalizeBrief(object, {
+  return normalizeBrief(briefResult.object, {
     model,
     windowHours: bundle.windowHours,
+    trends,
   });
 }

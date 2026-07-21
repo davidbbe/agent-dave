@@ -3,7 +3,7 @@ import { sendBriefEmail } from "@/lib/email";
 import { collectResearch } from "@/lib/research";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 90;
 
 function isAuthorized(request: Request) {
   const cronSecret = process.env.CRON_SECRET;
@@ -37,6 +37,10 @@ export async function GET(request: Request) {
       peopleCounts: Object.fromEntries(
         Object.entries(research.people).map(([id, items]) => [id, items.length]),
       ),
+      trendCounts: Object.fromEntries(
+        Object.entries(research.trends).map(([id, items]) => [id, items.length]),
+      ),
+      crossRegionCount: brief.trends.crossRegion.length,
     });
   } catch (error) {
     console.error("daily-brief failed", error);
