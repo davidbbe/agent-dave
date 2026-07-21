@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Agent Dave
 
-## Getting Started
+Daily noon-UTC email brief for market + tech news.
 
-First, run the development server:
+## What it does
+
+Every day at **12:00 UTC** (Hobby timing may land anytime in the 12:00–12:59 window), Vercel Cron hits `/api/daily-brief`, which:
+
+1. Pulls the last 24 hours of Google News headlines for **TSLA, MU, META, BTC**
+2. Checks for speeches/announcements by **Andrej Karpathy, Jensen Huang, Alex Karp, Sam Altman**
+3. Summarizes with **Vercel AI Gateway** (`google/gemini-2.5-flash-lite` by default — cheap free-tier friendly)
+4. Emails `streethouse4@gmail.com` via **Resend**
+
+## Setup
+
+1. Copy env template:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Fill in:
+   - `RESEND_API_KEY` + `EMAIL_FROM` (verified Resend domain)
+   - `CRON_SECRET` (random string; same value in Vercel env)
+   - `AI_GATEWAY_API_KEY` for local runs ([AI Gateway](https://vercel.com/docs/ai-gateway) dashboard)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Install and run locally:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm install
+npm run dev
+```
 
-## Learn More
+4. Trigger once (dev, no cron secret required):
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+curl http://localhost:3000/api/daily-brief
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deploy on Vercel (Hobby / free)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Push to GitHub and import the project in Vercel
+2. Set env vars: `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_TO`, `CRON_SECRET`
+3. Deploy to **Production** (crons only run on production)
+4. AI Gateway free monthly credits cover this once-daily load if you stay on a lite/flash model
 
-## Deploy on Vercel
+Optional: set `AI_MODEL` to any free-tier Gateway model slug.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Free-tier notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Vercel Hobby**: daily crons only — this schedule qualifies
+- **Resend free**: 100 emails/day — one daily digests is fine
+- **AI Gateway free**: use lite/flash models; monitor credits in the Vercel AI Gateway dashboard so you do not top up unless you choose to
