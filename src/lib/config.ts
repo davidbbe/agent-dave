@@ -28,5 +28,11 @@ export function getEmailFrom() {
   if (!from) {
     throw new Error("EMAIL_FROM is required");
   }
-  return from;
+
+  // Allow either "noreply@domain.com" or a full "Name <noreply@domain.com>" value.
+  if (from.includes("<") && from.includes(">")) {
+    return from;
+  }
+
+  return `Agent Dave <${from}>`;
 }
